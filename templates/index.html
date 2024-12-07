@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moziokosi Web Tool v2</title>
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="static/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-yWhZ6o9ch1v+0CYHr4v/z5BUt1bM3bDzf/yWz+KxoxbkR4VUfpEsaIQKRx0vg5SDxGRKZY0w7X/zMTKk8S2qdg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<!-- Prism.js for syntax highlighting (CDN) -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+</head>
+<body>
+<header class="app-header">
+  <div class="logo-area">
+    <i class="fas fa-brain"></i>
+    <h1>Moziokosi Web Tool v2</h1>
+  </div>
+  <button class="theme-toggle" title="Toggle Theme"><i class="fas fa-adjust"></i></button>
+</header>
+<main class="app-main">
+  <section class="card input-step">
+    <h2 class="section-title"><i class="fas fa-file-upload"></i> 入力ファイルまたはURL設定</h2>
+    <div class="form-group">
+      <label for="input_file">ファイル選択 <i class="fas fa-info-circle info-icon" title="音声または動画ファイルをアップロード"></i></label>
+      <input type="file" id="input_file" accept="audio/*,video/*">
+    </div>
+    <div class="form-group">
+      <label for="input_url">YouTube URL <i class="fas fa-info-circle info-icon" title="YouTubeリンクを貼って音声抽出"></i></label>
+      <input type="url" id="input_url" placeholder="https://www.youtube.com/watch?v=...">
+    </div>
+    <div class="form-group">
+      <label for="base_path">ベースパス <i class="fas fa-info-circle info-icon" title="出力結果の保存先（空欄でDownloads）"></i></label>
+      <input type="text" id="base_path" placeholder="空欄時はDownloadsフォルダ">
+    </div>
+    <div class="form-group checkbox-group">
+      <input type="checkbox" id="ueda_mode">
+      <label for="ueda_mode">上田専用カスタマイズモード</label>
+    </div>
+  </section>
+
+  <section class="card prompt-step">
+    <h2 class="section-title"><i class="fas fa-microphone"></i> プロンプト設定</h2>
+    <div class="form-group">
+      <label>Transcribe Prompt:</label>
+      <input type="text" id="transcribe_prompt" placeholder="未入力でデフォルト">
+    </div>
+    <div class="form-group">
+      <label>Summarize Prompt:</label>
+      <input type="text" id="summarize_prompt" placeholder="未入力でデフォルト">
+    </div>
+    <div class="form-group">
+      <label>Categorize Prompt:</label>
+      <input type="text" id="categorize_prompt" placeholder="未入力でデフォルト">
+    </div>
+  </section>
+
+  <section class="card setting-step">
+    <h2 class="section-title"><i class="fas fa-tools"></i> 処理設定</h2>
+    <div class="form-group inline-group">
+      <label>Split Method:</label>
+      <select id="split_method">
+        <option value="duration">duration</option>
+      </select>
+      <label>Split Value(秒):</label>
+      <input type="number" id="split_value" value="60" style="width:80px;">
+    </div>
+    <div class="form-group inline-group">
+      <label>Transcribe Model:</label>
+      <select id="transcribe_model">
+        <option value="whisper">Whisper(24MB制限)</option>
+        <option value="gemini">Gemini(2GB対応)</option>
+      </select>
+    </div>
+    <button id="startBtn" class="primary-btn"><i class="fas fa-play"></i> 実行</button>
+  </section>
+
+  <section class="card processing-step" id="processingCard" style="display:none;">
+    <h2 class="section-title"><i class="fas fa-spinner fa-pulse"></i> 処理中...</h2>
+    <div class="progress-wrapper">
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar">
+          <span id="progressValue">0%</span>
+        </div>
+      </div>
+      <div class="progress-info">
+        <p id="progressText">初期化中...</p>
+      </div>
+    </div>
+    <div class="tips-carousel">
+      <p class="tip">[TIP] 大きなファイルを扱う場合はGeminiモードが適しています。</p>
+      <p class="tip">[TIP] Transcribe Promptを工夫すると文字起こし精度が向上します。</p>
+      <p class="tip">[TIP] Summarize Promptでポイントを絞れば簡潔な要約が得られます。</p>
+    </div>
+    <lottie-player src="https://assets10.lottiefiles.com/packages/lf20_h4th9ofg.json" background="transparent" speed="1" loop autoplay style="width:200px; margin:0 auto;"></lottie-player>
+    <div class="log-area" id="logArea"></div>
+  </section>
+
+  <section class="card result-step" id="resultCard" style="display:none;">
+    <h2 class="section-title"><i class="fas fa-check-circle"></i> 結果</h2>
+    <div class="result-actions">
+      <button class="secondary-btn" id="copyResultBtn"><i class="fas fa-copy"></i> コピー</button>
+      <button class="secondary-btn" id="downloadResultBtn"><i class="fas fa-download"></i> ダウンロード</button>
+    </div>
+    <pre><code class="language-json" id="resultOutput"></code></pre>
+  </section>
+
+</main>
+<footer class="app-footer">
+  <p>©2024 Moziokosi Web Tool v2 - Aim for the World No.1!</p>
+</footer>
+
+<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+<script src="static/script.js"></script>
+</body>
+</html>
